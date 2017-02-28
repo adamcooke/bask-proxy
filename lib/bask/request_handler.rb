@@ -6,29 +6,35 @@ module Bask
     end
 
     def handle
-
       if @request.app.nil?
         @request.render(404, "No application found for this host (#{@request.host})")
         return
       end
 
-      unless @request.app.ready?
-        @request.render(503, "The backend app isn't ready for connections. Have you started it?")
+      unless @request.app.start
+        @request.render(503, "Failed to start application. Check bask log for full details.")
         return
       end
 
       backend_socket = nil
+      attempts = 0
       begin
+        attempts += 1
         Timeout.timeout(5) do
           backend_socket = TCPSocket.new('127.0.0.1', @request.app.port)
         end
         backend_socket.write(@request.headers)
       rescue Errno::ECONNREFUSED, Errno::ENETUNREACH, Errno::EHOSTUNREACH, Errno::ETIMEDOUT => e
         # This is a 503 error.
-        @request.render(503, "Couldn't connect to backend at 127.0.0.1:#{@request.app.port}")
-        Bask.logger.debug "Couldn't connect to backend at 127.0.0.1:#{@request.app.port}"
-        backend_socket.close rescue nil
-        return
+        if attempts < 30
+          sleep 1
+          retry
+        else
+          @request.render(503, "Couldn't connect to backend at 127.0.0.1:#{@request.app.port}")
+          Bask.logger.debug "Couldn't connect to backend at 127.0.0.1:#{@request.app.port}"
+          backend_socket.close rescue nil
+          return
+        end
       rescue Timeout::Error => e
         # This is a timeout. Highly unlikely.
         @request.render(503, "Timeout connecting to backend")

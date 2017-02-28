@@ -1,8 +1,11 @@
 #!/usr/bin/env ruby
 
 $:.unshift(File.expand_path('../../lib', __FILE__))
+$:.unshift(File.expand_path('../../../procodile/lib', __FILE__))
 
 command = ARGV[0]
+
+require 'bask'
 
 case command
 when 'run'
@@ -15,5 +18,8 @@ when 'config'
     puts "App exists: #{app.present?}"
     puts "Path: #{app.path}"
     puts "Supervisor running: #{app.supervisor_running?}"
+    puts "Status: #{app.supervisor_status}"
+    puts "Process status: #{app.process_status}"
+    puts "Process running: #{app.process_running?}"
   end
 end

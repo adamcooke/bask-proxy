@@ -1,4 +1,5 @@
 require 'logger'
+require 'procodile'
 require 'bask'
 require 'bask/config'
 require 'yaml'
