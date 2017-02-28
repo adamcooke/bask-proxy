@@ -1,0 +1,19 @@
+#!/usr/bin/env ruby
+
+$:.unshift(File.expand_path('../../lib', __FILE__))
+
+command = ARGV[0]
+
+case command
+when 'run'
+  require 'bask/server'
+  server = Bask::Server.new
+  server.run
+when 'config'
+  require 'bask'
+  Bask.config.apps.values.each do |app|
+    puts "App exists: #{app.present?}"
+    puts "Path: #{app.path}"
+    puts "Supervisor running: #{app.supervisor_running?}"
+  end
+end
