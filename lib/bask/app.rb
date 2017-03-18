@@ -5,6 +5,11 @@ require 'procodile/cli'
 module Bask
   class App
 
+    def reload(options)
+      @options = options
+      @config = nil
+    end
+
     def initialize(name, options = {})
       @name = name
       @options = options
@@ -19,7 +24,7 @@ module Bask
     end
 
     def port
-      @options['port'].to_i
+      ports[rand(ports.size)]
     end
 
     def environment
@@ -27,7 +32,11 @@ module Bask
     end
 
     def process
-      @options['process'] || 'web'
+      config.processes[@options['process'] || 'web']
+    end
+
+    def user
+      @options['user'] || 'root'
     end
 
     def procfile_path
@@ -40,6 +49,17 @@ module Bask
 
     def config
       @config ||= Procodile::Config.new(path, environment, procfile_path)
+    end
+
+    def suitable?
+      return false unless present?
+      return false unless process
+      return false unless process.allocate_ports?
+      return true
+    end
+
+    def ports
+      instances.map { |p| p['port'] }
     end
 
     def current_pid
@@ -59,23 +79,35 @@ module Bask
       end
     end
 
-    def process_status
-      if status = supervisor_status
-        (status['instances'] && status['instances'][self.process].first) || false
+    def running_instances
+      instances.select { |p| p['status'] == 'Running' }
+    end
+
+    def instances
+      if status = get_supervisor_status
+        if status['instances']
+          status['instances'][self.process.name] || []
+        else
+          []
+        end
       else
-        false
+        []
       end
     end
 
     def process_running?
-      if status = process_status
-        self.class.pid_active?(status['pid'])
+      instances.any? { |p| self.class.pid_active?(p['pid']) }
+    end
+
+    def processes_failed?
+      if status = get_supervisor_status
+        status['instances'][self.process.name].all? { |i| i['status'] == 'Failed' }
       else
-        false
+        true
       end
     end
 
-    def supervisor_status
+    def get_supervisor_status
       if supervisor_running?
         Procodile::ControlClient.run(@config.sock_path, 'status')
       else
@@ -87,17 +119,34 @@ module Bask
       @last_request_at = Time.now
       if supervisor_running?
         if process_running?
-          true
+          return true
         else
-          # Start the process within the existing supervisor.
-          Bask.logger.info "Starting #{self.process} on existing supervisor for #{self.name}"
-          Procodile::ControlClient.run(@config.sock_path, 'start_processes')
+          if self.instances.empty?
+            # Start the process within the existing supervisor.
+            Bask.logger.info "Starting #{self.process.name} on existing supervisor for #{self.name}"
+            Procodile::ControlClient.run(@config.sock_path, 'start_processes')
+          else
+            # There are instances, they're just not running which means they're likely failed.
+            return false
+          end
         end
       else
         # Start the supervisor with all processes
         Bask.logger.info "Starting supervisor for #{self.name}"
-        Process.spawn("#{Procodile.bin_path} start --root #{self.path} --procfile #{self.procfile_path} -e #{self.environment}", :pgroup => true)
+        command = "sudo -u #{user} #{Procodile.bin_path} start --root #{self.path} --procfile #{self.procfile_path} -e #{self.environment} --allocate-ports --stop-when-none --no-respawn"
+        Process.spawn(command, :pgroup => true)
       end
+
+      until self.instances.size > 0
+        sleep 0.5
+
+        if self.running_instances.empty?
+          # If there are no running instances, the processes likely failed to start.
+          return false
+        end
+      end
+
+      true
     end
 
     def ready?

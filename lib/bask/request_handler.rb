@@ -11,6 +11,11 @@ module Bask
         return
       end
 
+      unless @request.app.suitable?
+        @request.render(503, "This application is not suitable for running with Bask. Check the app exists, it has a procfile and that the process is configured with a TCP network protocol.")
+        return
+      end
+
       unless @request.app.start
         @request.render(503, "Failed to start application. Check bask log for full details.")
         return

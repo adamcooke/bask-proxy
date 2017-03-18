@@ -1,0 +1,7 @@
+app_name: bask
+log_path: log/bask.log
+pid_root: tmp/pids
+console_command: irb -Ilib
+processes:
+  web:
+    restart_mode: usr1

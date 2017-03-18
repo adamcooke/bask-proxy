@@ -3,16 +3,21 @@ require 'bask/app'
 module Bask
   class Config
 
-    def initialize(config = {})
-      @config = config
+    def initialize(path)
+      @path = path
+      load
     end
 
-    def bind_address
-      @config['bind_address'] || '0.0.0.0'
+    def web_server
+      @config['web_server'] || {}
     end
 
-    def bind_port
-      @config['bind_port'] || 8080
+    def web_server_bind_address
+      web_server['bind_address'] || '0.0.0.0'
+    end
+
+    def web_server_bind_port
+      web_server['bind_port'] || 8080
     end
 
     def apps
@@ -25,6 +30,15 @@ module Bask
           {}
         end
       end
+    end
+
+    def load
+      @config = YAML.load_file(@path)
+    end
+
+    def reload
+      load
+      apps.each { |name, app| app.reload(@config['apps'][name]) }
     end
 
   end

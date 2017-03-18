@@ -8,6 +8,7 @@ module Bask
 
   CONFIG_PATHS = [
     File.expand_path('../../config.yml', __FILE__),
+    File.join(ENV['HOME'], '.bask'),
     "/etc/bask.conf"
   ]
 
@@ -19,7 +20,7 @@ module Bask
     @config ||= begin
       CONFIG_PATHS.each do |path|
         if File.file?(path)
-          return Config.new(YAML.load_file(path))
+          return Config.new(path)
         end
       end
       Config.new

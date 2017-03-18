@@ -6,15 +6,15 @@ require 'thread'
 require 'timeout'
 
 module Bask
-  class Server
+  class WebServer
 
     def initialize
     end
 
     def run
-      server = TCPServer.new(Bask.config.bind_address, Bask.config.bind_port)
+      server = TCPServer.new(Bask.config.web_server_bind_address, Bask.config.web_server_bind_port)
       listen(server)
-      Bask.logger.info "Listening on #{Bask.config.bind_address}:#{Bask.config.bind_port}"
+      Bask.logger.info "Listening on #{Bask.config.web_server_bind_address}:#{Bask.config.web_server_bind_port}"
 
       while Thread.list.size > 1
         sleep 1
