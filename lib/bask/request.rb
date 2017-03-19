@@ -30,7 +30,7 @@ module Bask
     def app_name
       @app_name ||= begin
         host, port = @host.split(':', 2)
-        host.split('.').reverse.drop(2).first
+        host.split('.').reverse.drop(1).first
       end
     end
 

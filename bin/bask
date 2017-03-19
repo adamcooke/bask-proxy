@@ -9,6 +9,13 @@ $stderr.sync = true
 trap('USR1') { Bask.config.reload ; puts "Config reloaded" }
 
 require 'bask'
+
+Thread.new do
+  require 'bask/dns_server'
+  server = Bask::DNSServer.new
+  server.run
+end.tap { |t| t.abort_on_exception = true }
+
 require 'bask/web_server'
 server = Bask::WebServer.new
 server.run

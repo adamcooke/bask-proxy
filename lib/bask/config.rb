@@ -17,7 +17,15 @@ module Bask
     end
 
     def web_server_bind_port
-      web_server['bind_port'] || 8080
+      web_server['bind_port'] || 80
+    end
+
+    def dns_server
+      @config['dns_server'] || {}
+    end
+
+    def dns_server_bind_port
+      dns_server['bind_port'] || 5454
     end
 
     def apps
