@@ -27,4 +27,18 @@ module Bask
     end
   end
 
+  def self.current_pid
+    (File.file?(config.pid_path) && File.read(config.pid_path).to_i) || false
+  end
+
+  def self.running?
+    if pid = current_pid
+      Process.getpgid(pid) ? true : false
+    else
+      false
+    end
+  rescue Errno::ESRCH
+    false
+  end
+
 end

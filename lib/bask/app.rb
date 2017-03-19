@@ -159,5 +159,15 @@ module Bask
       false
     end
 
+    def status
+      if supervisor_running? && process_running?
+        "Ready"
+      elsif supervisor_running? && !process_running?
+        "ProcessNotRunning"
+      else
+        "NoSupervisor"
+      end
+    end
+
   end
 end

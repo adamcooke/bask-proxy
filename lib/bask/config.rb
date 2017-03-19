@@ -3,9 +3,19 @@ require 'bask/app'
 module Bask
   class Config
 
+    attr_reader :path
+
     def initialize(path)
       @path = path
       load
+    end
+
+    def pid_path
+      File.join('', 'tmp', 'bask.pid')
+    end
+
+    def log_path
+      File.join('', 'tmp', 'bask.log')
     end
 
     def web_server
@@ -40,8 +50,22 @@ module Bask
       end
     end
 
+    def add_app(name, properties)
+      @config['apps'][name] = properties
+      save
+    end
+
+    def remove_app(name)
+      @config['apps'].delete(name)
+      save
+    end
+
     def load
       @config = YAML.load_file(@path)
+    end
+
+    def save
+      File.open(@path, 'w') { |f| f.write(@config.to_yaml) }
     end
 
     def reload

@@ -8,14 +8,15 @@ $stderr.sync = true
 
 trap('USR1') { Bask.config.reload ; puts "Config reloaded" }
 
+if ENV['USER'] != 'root'
+  # Executing as root. Bask needs to run as root in order to listen on port 80 and
+  # manage processes for multiple system users.
+  exec("sudo -- #{File.expand_path(__FILE__)} #{ARGV.join(' ')}")
+end
+
 require 'bask'
+require 'bask/cli'
 
-Thread.new do
-  require 'bask/dns_server'
-  server = Bask::DNSServer.new
-  server.run
-end.tap { |t| t.abort_on_exception = true }
-
-require 'bask/web_server'
-server = Bask::WebServer.new
-server.run
+command = ARGV.shift
+cli = Bask::CLI.new(ARGV)
+cli.dispatch(command)
