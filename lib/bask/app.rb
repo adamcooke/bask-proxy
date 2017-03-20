@@ -54,7 +54,6 @@ module Bask
     def suitable?
       return false unless present?
       return false unless process
-      return false unless process.allocate_ports?
       return true
     end
 
@@ -124,7 +123,7 @@ module Bask
           if self.instances.empty?
             # Start the process within the existing supervisor.
             Bask.logger.info "Starting #{self.process.name} on existing supervisor for #{self.name}"
-            Procodile::ControlClient.run(@config.sock_path, 'start_processes')
+            Procodile::ControlClient.run(@config.sock_path, 'start_processes', 'port_allocations' => {process.name => 0})
           else
             # There are instances, they're just not running which means they're likely failed.
             return false
@@ -133,7 +132,7 @@ module Bask
       else
         # Start the supervisor with all processes
         Bask.logger.info "Starting supervisor for #{self.name}"
-        command = "sudo -u #{user} #{Procodile.bin_path} start --root #{self.path} --procfile #{self.procfile_path} -e #{self.environment} --allocate-ports --stop-when-none --no-respawn"
+        command = "sudo -u #{user} #{Procodile.bin_path} start --root #{self.path} --procfile #{self.procfile_path} -e #{self.environment} --stop-when-none --no-respawn --ports=#{process.name}"
         Process.spawn(command, :pgroup => true)
       end
 
